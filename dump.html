@@ -1,0 +1,54 @@
+
+<!DOCTYPE html>
+<html lang="en" >
+
+<head>
+  <meta charset="UTF-8">
+  <title>SotS Save Decoder</title>
+</head>
+
+<body translate="no" >
+  <p>submit your sots save file, and get a decoded copy + the ink state</p>
+  <p>save file is located at:</p>
+  <p><code>C:\Users\You\AppData\LocalLow\Echodog Games\Signs of the Sojourner/save.sots</code> on windows</p>
+  <p><code>/home/You/Library/Application Support/Echodog Games/Signs of the Sojourner/save.sots</code> on mac</p>
+  <input type="file" id="fileInput">
+  <br/>
+  <a id="saveLink"></a>
+  <br/>
+  <a id="inkLink"></a>
+  
+  <script>
+const inputElement = document.getElementById("fileInput");
+inputElement.addEventListener("change", handleFiles, false);
+const key = "wow this is a nice key";
+function handleFiles() {
+  const saveFile = this.files[0];
+  saveFile.arrayBuffer().then(rawSaveBuffer => {
+    const saveBuffer = new Uint8Array(rawSaveBuffer);
+    saveBuffer.forEach((_, i, arr) => Atomics.xor(arr, i, key.charCodeAt(i % key.length)));
+    const save = JSON.parse(new TextDecoder().decode(rawSaveBuffer));
+    const prettySaveString = JSON.stringify(save, null, 2);
+    const prettyInkStateString = JSON.stringify(JSON.parse(save.inkState), null, 2);
+
+
+    const saveLink = document.getElementById("saveLink");
+    saveLink.href = URL.createObjectURL(new Blob([prettySaveString], { type: "application/json" }));
+    saveLink.download = `sots_decoded_save_${save.runId}.json`;
+    //saveLink.click(); //immediate download when you give it your file seems obnoxious
+    saveLink.text = `Download ${saveLink.download}`;
+
+    const inkLink = document.getElementById("inkLink");
+    inkLink.href = URL.createObjectURL(new Blob([prettyInkStateString], { type: "application/json" }));
+    inkLink.download = `sots_inkState_${save.runId}.json`;
+    //inkLink.click();
+    inkLink.text = `Download ${inkLink.download} (this is part of the regular save, but this copy is in a more convenient shape for humans)`;
+
+  });
+}
+  </script>
+
+</body>
+
+</html>
+ 
