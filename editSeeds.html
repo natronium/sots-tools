@@ -1,0 +1,84 @@
+
+<!DOCTYPE html>
+<html lang="en" >
+
+<head>
+  <meta charset="UTF-8">
+  <title>SotS Seed Editor</title>
+  <script src="sotsLib.js" async></script>
+</head>
+
+<body translate="no" >
+  <p>submit your sots save file to edit the assorted RNG seeds within</p>
+  <p>save file is located at:</p>
+  <p><code>C:\Users\You\AppData\LocalLow\Echodog Games\Signs of the Sojourner/save.sots</code> on windows</p>
+  <p><code>/home/You/Library/Application Support/Echodog Games/Signs of the Sojourner/save.sots</code> on mac</p>
+  <input type="file" id="fileInput">
+  <hr/>
+  <p><code>ss</code>: used for special events, the tutorial event, and NPC card choices (both drawn from their deck and played from their hand)</p>
+  <input id="ss" type="number"/>
+
+  <p><code>previousRandom</code>: used for calls to <code>RANDOM</code> and <code>LIST_RANDOM</code> in the ink script. changes every use</p>
+  <input id="previousRandom" type="number"/>
+
+  <p><code>storySeed</code>: used internally by ink in <code>Story.NextSequenceShuffleIndex</code> for shuffles,
+    in addition to <code>RANDOM</code> and <code>LIST_RANDOM</code> calls</p>
+  <input id="storySeed" type="number"/>
+  <hr/>
+  <button id="saveButton" type="button">Save modified seeds</button>
+
+  <br/>
+  <br/>
+  <a id="saveLink"></a>
+
+  <script>
+document.getElementById('fileInput').addEventListener('change', handleFiles, false);
+document.getElementById('saveButton').addEventListener('click', saveModifiedFile, false);
+
+//FIXME: find a cleaner way to do this than global state
+let saveData;
+let inkData;
+
+function handleFiles() {
+  const saveFile = this.files[0];
+  saveFile.arrayBuffer().then(rawSaveBuffer => {
+
+    const saveBuffer = new Uint8Array(rawSaveBuffer);
+    decodedBuffer = xorCodec(saveBuffer);
+    saveData = JSON.parse(new TextDecoder().decode(decodedBuffer));
+    inkData = JSON.parse(saveData.inkState);
+
+    document.getElementById('ss').value = saveData.ss;
+    document.getElementById('previousRandom').value = inkData.previousRandom;
+    document.getElementById('storySeed').value = inkData.storySeed;
+
+  });
+}
+
+function saveModifiedFile() {
+  //FIXME: use structuredClone instead of modifying stuff in place?
+  //  teeeeechnically it probably doesn't matter that we modify stuff in place,
+  //  but... it'd be nice not to
+  saveData.ss = document.getElementById('ss').value;
+  inkData.previousRandom = document.getElementById('previousRandom').value;
+  inkData.storySeed = document.getElementById('storySeed').value;
+  saveData.inkState = JSON.stringify(inkData);
+  
+  let saveString = JSON.stringify(saveData);
+  let saveBuffer = new TextEncoder().encode(saveString);
+  let encodedSave = xorCodec(saveBuffer);
+
+  const saveFileName = `save-modifiedseeds.sots`;
+  saveBlobLink(
+    'saveLink',
+    new Blob([encodedSave], {type: 'application/octet-stream'}),
+    saveFileName,
+    `Download ${saveFileName}`
+  );
+}
+  </script>
+
+</body>
+
+</html>
+
