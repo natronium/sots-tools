@@ -18,6 +18,8 @@
   <hr/>
   <p>click "Overwrite" to replace all NPCs in Pachenco and Clifton with Isabella and Alexis respectively</p>
   <p>click "Append" to add Isabella and Alexis to the list of NPCs in Pachenco and Clifton respectively</p>
+  <p>both options will make sure that Isabella is a member of <code>initial_npcs</code>,
+    which will allow Tomas to spawn via discordance with Isabella in her <em>Community Rivals</em> or <em>The Exile</em> events</p>
   <p>NB: this may allow for not-normally reachable states, including alexis existing in multiple places at once, or npcs missing entirely</p>
   <button id="overwriteButton" type="button">Overwrite</button>
   <button id="appendButton" type="button">Append</button>
@@ -69,6 +71,11 @@ function saveModifiedFile() {
   //  teeeeechnically it probably doesn't matter that we modify stuff in place,
   //  but... it'd be nice not to
   document.querySelectorAll('button').forEach(e => e.style.display = 'none');
+
+  delete inkData.variablesState.initial_npcs.list['npcs.marques'];
+  delete inkData.variablesState.initial_npcs.list['npcs.tomas'];
+  inkData.variablesState.initial_npcs.list['npcs.isabella'] = 5;
+
   saveData.inkState = JSON.stringify(inkData);
   
   let saveString = JSON.stringify(saveData);
