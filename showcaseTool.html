@@ -36,6 +36,7 @@ let saveData;
 let inkData;
 
 function handleFiles() {
+  document.querySelectorAll('button').forEach(e => e.style.display = 'inline');
   const saveFile = this.files[0];
   saveFile.arrayBuffer().then(rawSaveBuffer => {
 
@@ -74,7 +75,7 @@ function saveModifiedFile() {
   let saveBuffer = new TextEncoder().encode(saveString);
   let encodedSave = xorCodec(saveBuffer);
 
-  const saveFileName = `save-modifiedseeds.sots`;
+  const saveFileName = `save-showcasetweaked.sots`;
   saveBlobLink(
     'saveLink',
     new Blob([encodedSave], {type: 'application/octet-stream'}),
