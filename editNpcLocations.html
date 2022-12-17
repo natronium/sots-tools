@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>SotS NPC Location Editor</title>
+  <script src="sotsLib.js"></script>
+  <script src="Sortable.js"></script>
+  <style>
+    #container h4 {
+      margin-bottom: 0;
+    }
+
+    #container ul {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-evenly;
+      margin-top: 0;
+      border: dashed 0.2em;
+      list-style: none;
+      max-width: 50%;
+      min-height: 2em;
+      padding: 0;
+    }
+
+    #container li {
+      margin: 0.5em;
+      border: solid 2px orange;
+      background: #ffe1ab;
+      padding: 0.4em;
+    }
+  </style>
+</head>
+
+<body>
+  <a href="index.html">go back to the list of tools</a>
+  <p>submit your sots save file to edit npc locations</p>
+  <p>NB: this tool does not do anything clever to make sure all the game state is definitely correct. it only edits NPC locations and nothing else.
+    depending on your changes some jank may result.
+    <ul>
+      <li>you can put NPCs where they might normally never be, or banish them to the shadow realm.</li>
+      <li>there may be some additional state that would also get set in the course of an NPC spawning or moving to a location</li>
+      <li>some things depend on specific NPCs being on the list of initially generated NPCs (<code>initial_npcs</code>). this tool does not change that list.</li>
+      <li>NPCs like "<code>tutorial</code>" with no description will cause the game to hang as soon as you try to enter their location</li>
+    </ul>
+    
+  </p>
+  <p>save file is located at:</p>
+  <p><code>C:\Users\You\AppData\LocalLow\Echodog Games\Signs of the Sojourner/save.sots</code> on windows</p>
+  <p><code>/home/You/Library/Application Support/Echodog Games/Signs of the Sojourner/save.sots</code> on mac</p>
+  <input type="file" id="fileInput">
+  <hr />
+  <div id="container">
+    <!-- javascript generates this-->
+  </div>
+  <hr />
+  <button id="saveButton" type="button">Save</button>
+
+  <br />
+  <br />
+  <a id="saveLink"></a>
+
+  <template id="locationTemplate">
+    <h4>LocationName</h4>
+    <ul class="locationList"></ul>
+  </template>
+
+  <template id="npcTemplate">
+    <li class="npcItem list-group-item">NPCName</li>
+  </template>
+
+  <script>
+    document.getElementById('fileInput').addEventListener('change', handleFiles, false);
+    document.getElementById('saveButton').addEventListener('click', saveModifiedFile, false);
+
+    let container = document.getElementById('container');
+
+    container.append(createLocationContainer('nowhere'));
+    new Sortable(document.getElementById('npcs_nowhere'), {
+      group: 'sots-locations',
+      animation: 150,
+      sort: false
+    });
+
+    for (let npc of Object.keys(npcs)) {
+      document.getElementById('npcs_nowhere').append(createNpcItem(npc));
+    }
+
+    for (let location of Object.keys(locations)) {
+      container.append(createLocationContainer(location));
+      new Sortable(document.getElementById(`npcs_${location}`), {
+        group: 'sots-locations',
+        animation: 150,
+        sort: false
+      })
+    }
+
+    function createLocationContainer(locationName) {
+      let locationTemplate = document.getElementById('locationTemplate');
+      let locationContainer = locationTemplate.content.cloneNode(true);
+      locationContainer.querySelector('h4').textContent = locationName;
+      locationContainer.querySelector('ul').id = `npcs_${locationName}`;
+      return locationContainer;
+    }
+
+    function createNpcItem(npcName) {
+      let npcTemplate = document.getElementById('npcTemplate');
+      let npcItem = npcTemplate.content.cloneNode(true);
+      npcItem.querySelector('li').textContent = npcName;
+      npcItem.querySelector('li').id = `npcs.${npcName}`;
+      return npcItem;
+    }
+
+    //FIXME: find a cleaner way to do this than global state
+    let saveData;
+    let inkData;
+
+    function handleFiles() {
+      const saveFile = this.files[0];
+      saveFile.arrayBuffer().then(rawSaveBuffer => {
+
+        const saveBuffer = new Uint8Array(rawSaveBuffer);
+        decodedBuffer = xorCodec(saveBuffer);
+        saveData = JSON.parse(new TextDecoder().decode(decodedBuffer));
+        inkData = JSON.parse(saveData.inkState);
+
+        for (loc of Object.keys(locations)) {
+          let locName = `npcs_${loc}`;
+          let locContainer = document.getElementById(locName);
+          if (Object.hasOwn(inkData.variablesState, locName)) {
+            for (let npc of Object.keys(inkData.variablesState[locName].list)) {
+              locContainer.append(document.getElementById(npc));
+            }
+          }
+        }
+
+      });
+    }
+
+    function saveModifiedFile() {
+      //FIXME: use structuredClone instead of modifying stuff in place?
+      //  teeeeechnically it probably doesn't matter that we modify stuff in place,
+      //  but... it'd be nice not to
+
+      for (let l of Object.keys(locations)) {
+        const name = `npcs_${l}`;
+        let locationContainer = document.getElementById(name);
+        if (locationContainer.children.length === 0) {
+          delete inkData.variablesState[name];
+        } else {
+          inkData.variablesState[name] = {list:{}};
+          for (let npcItem of locationContainer.children) {
+            inkData.variablesState[name].list = {
+              ...inkData.variablesState[name].list,
+              ...npcs[npcItem.textContent]
+            };
+          }
+        }
+      }
+
+      saveData.inkState = JSON.stringify(inkData);
+
+      let saveString = JSON.stringify(saveData);
+      let saveBuffer = new TextEncoder().encode(saveString);
+      let encodedSave = xorCodec(saveBuffer);
+
+      const saveFileName = `save-${saveData.runId}-modifiedNPCs.sots`;
+      saveBlobLink(
+        'saveLink',
+        new Blob([encodedSave], { type: 'application/octet-stream' }),
+        saveFileName,
+        `Download ${saveFileName}`
+      );
+    }
+  </script>
+
+</body>
+
+</html>
