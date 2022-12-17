@@ -1,0 +1,90 @@
+
+<!DOCTYPE html>
+<html lang="en" >
+
+<head>
+  <meta charset="UTF-8">
+  <title>SotS save showcase thingy</title>
+  <script src="sotsLib.js" async></script>
+</head>
+
+<body>
+  <a href="index.html">go back to the list of tools</a>
+  <p></p>
+  <p>save file is located at:</p>
+  <p><code>C:\Users\You\AppData\LocalLow\Echodog Games\Signs of the Sojourner/save.sots</code> on windows</p>
+  <p><code>/home/You/Library/Application Support/Echodog Games/Signs of the Sojourner/save.sots</code> on mac</p>
+  <input type="file" id="fileInput">
+  <hr/>
+  <p>click "Overwrite" to replace all NPCs in Pachenco and Clifton with Isabella and Alexis respectively</p>
+  <p>click "Append" to add Isabella and Alexis to the list of NPCs in Pachenco and Clifton respectively</p>
+  <p>NB: this may allow for not-normally reachable states, including alexis existing in multiple places at once, or npcs missing entirely</p>
+  <button id="overwriteButton" type="button">Overwrite</button>
+  <button id="appendButton" type="button">Append</button>
+
+  <br/>
+  <br/>
+  <a id="saveLink"></a>
+
+  <script>
+document.getElementById('fileInput').addEventListener('change', handleFiles, false);
+document.getElementById('overwriteButton').addEventListener('click', overwriteNpcStuff, false);
+document.getElementById('appendButton').addEventListener('click', appendNpcStuff, false);
+
+//FIXME: find a cleaner way to do this than global state
+let saveData;
+let inkData;
+
+function handleFiles() {
+  const saveFile = this.files[0];
+  saveFile.arrayBuffer().then(rawSaveBuffer => {
+
+    const saveBuffer = new Uint8Array(rawSaveBuffer);
+    decodedBuffer = xorCodec(saveBuffer);
+    saveData = JSON.parse(new TextDecoder().decode(decodedBuffer));
+    inkData = JSON.parse(saveData.inkState);
+
+  });
+}
+
+function overwriteNpcStuff() {
+  inkData.variablesState['npcs_pachenco'].list = npcs.isabella;
+  inkData.variablesState['npcs_clifton'].list = npcs.alexis;
+  saveModifiedFile();
+}
+
+function appendNpcStuff() {
+  inkData.variablesState['npcs_pachenco'].list = {
+    ...inkData.variablesState['npcs_pachenco'].list,
+    ...npcs.isabella};
+  inkData.variablesState['npcs_clifton'].list = {
+    ...inkData.variablesState['npcs_clifton'].list,
+    ...npcs.alexis};
+  saveModifiedFile();
+}
+
+function saveModifiedFile() {
+  //FIXME: use structuredClone instead of modifying stuff in place?
+  //  teeeeechnically it probably doesn't matter that we modify stuff in place,
+  //  but... it'd be nice not to
+  document.querySelectorAll('button').forEach(e => e.style.display = 'none');
+  saveData.inkState = JSON.stringify(inkData);
+  
+  let saveString = JSON.stringify(saveData);
+  let saveBuffer = new TextEncoder().encode(saveString);
+  let encodedSave = xorCodec(saveBuffer);
+
+  const saveFileName = `save-modifiedseeds.sots`;
+  saveBlobLink(
+    'saveLink',
+    new Blob([encodedSave], {type: 'application/octet-stream'}),
+    saveFileName,
+    `Download ${saveFileName}`
+  );
+}
+  </script>
+
+</body>
+
+</html>
+
