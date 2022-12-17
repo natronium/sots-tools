@@ -50,7 +50,7 @@
   <p><code>/home/You/Library/Application Support/Echodog Games/Signs of the Sojourner/save.sots</code> on mac</p>
   <input type="file" id="fileInput">
   <hr />
-  <div id="container">
+  <div id="container" style="display:none;">
     <!-- javascript generates this-->
   </div>
   <hr />
@@ -133,6 +133,8 @@
             }
           }
         }
+
+        container.style.display = 'block';
 
       });
     }
