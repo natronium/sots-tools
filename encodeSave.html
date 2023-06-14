@@ -1,0 +1,50 @@
+
+<!DOCTYPE html>
+<html lang="en" >
+
+<head>
+  <meta charset="UTF-8">
+  <title>SotS Save Decoder</title>
+  <script src="sotsLib.js" async></script>
+</head>
+
+<body>
+  <a href="index.html">go back to the list of tools</a>
+  <p>submit a <a href=decodeSave.html>decoded</a> sots save, and get an encoded copy that the game can load</p>
+  <p>put your save in:</p>
+  <p><code>C:\Users\You\AppData\LocalLow\Echodog Games\Signs of the Sojourner/save.sots</code> on windows</p>
+  <p><code>/home/You/Library/Application Support/Echodog Games/Signs of the Sojourner/save.sots</code> on mac</p>
+  <p>in order for the game to load it</p>
+  <input type="file" id="fileInput">
+  <br/>
+  <a id="saveLink"></a>
+
+  <script>
+const inputElement = document.getElementById('fileInput');
+inputElement.addEventListener('change', handleFiles, false);
+function handleFiles() {
+  const saveFile = this.files[0];
+  saveFile.arrayBuffer().then(rawSaveBuffer => {
+
+    const saveBuffer = new Uint8Array(rawSaveBuffer);
+    const save = JSON.parse(new TextDecoder().decode(saveBuffer));
+    const saveString = JSON.stringify(save);
+    const uglySaveBuffer  = new TextEncoder().encode(saveString);
+    const encodedBuffer = xorCodec(uglySaveBuffer);
+    
+    const saveFileName = `save.sots`;
+    saveBlobLink(
+      'saveLink',
+      new Blob([encodedBuffer], {type: 'application/json'}),
+      saveFileName,
+      `Download ${saveFileName}`
+    );
+
+  });
+}
+  </script>
+
+</body>
+
+</html>
+
